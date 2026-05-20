@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { usePlants, DiaryEntry } from '@/context/PlantsContext';
 import { EXPLORE_LIBRARY } from '@/constants/mockData';
+import { resolveImageSource } from '@/utils/imageResolver';
 
 const DIARY_PRESET_IMAGES = [
   { id: 'dp1', name: 'Semilla/Brote', url: 'https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?w=400&auto=format&fit=crop&q=80' },
@@ -264,7 +265,7 @@ export default function PlantDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.imageContainer}>
           <Image 
-            source={{ uri: plant.image }} 
+            source={resolveImageSource(plant.image)} 
             style={styles.image}
             contentFit="cover"
           />
@@ -559,7 +560,7 @@ export default function PlantDetailScreen() {
                               ) : null}
 
                               {entry.image ? (
-                                <Image source={{ uri: entry.image }} style={styles.entryImageThumb} contentFit="cover" />
+                                <Image source={resolveImageSource(entry.image)} style={styles.entryImageThumb} contentFit="cover" />
                               ) : null}
                             </View>
                           </View>
@@ -691,11 +692,11 @@ export default function PlantDetailScreen() {
               <View style={styles.formGroup}>
                 <Text style={[styles.formLabel, { color: colors.text }]}>Foto del registro</Text>
                 <View style={styles.imageSelectorContainer}>
-                  <Image source={{ uri: entryImage }} style={styles.imageSelectorPreview} contentFit="cover" />
+                  <Image source={resolveImageSource(entryImage)} style={styles.imageSelectorPreview} contentFit="cover" />
                   <View style={styles.imageSelectorInputGroup}>
                     <Text style={[styles.imageSelectorInstruction, { color: colors.textSecondary }]}>Ingresa URL personalizada o selecciona una etapa de crecimiento:</Text>
                     <TextInput 
-                      value={entryImage}
+                      value={typeof entryImage === 'string' ? entryImage : ''}
                       onChangeText={setEntryImage}
                       placeholder="Pegar URL de foto..."
                       placeholderTextColor={colors.textSecondary + '77'}
@@ -836,7 +837,7 @@ export default function PlantDetailScreen() {
                 {/* Active Frame Large Image */}
                 <View style={[styles.timelapseFrameContainer, { borderColor: colors.border }]}>
                   <Image 
-                    source={{ uri: chronologicalDiary[timelapseIndex]?.image }} 
+                    source={resolveImageSource(chronologicalDiary[timelapseIndex]?.image)} 
                     style={styles.timelapseImage} 
                     contentFit="cover" 
                   />
@@ -1021,7 +1022,7 @@ export default function PlantDetailScreen() {
                       <View style={[styles.compareCol, { backgroundColor: colors.background, borderColor: colors.border }]}>
                         <Text style={[styles.compareColHeader, { color: colors.primary }]}>Registro A</Text>
                         <Text style={[styles.compareColDate, { color: colors.text }]}>{entryA.date}</Text>
-                        <Image source={{ uri: entryA.image }} style={styles.compareColImage} contentFit="cover" />
+                        <Image source={resolveImageSource(entryA.image)} style={styles.compareColImage} contentFit="cover" />
                         
                         <View style={styles.compareColStats}>
                           <View style={styles.compareStatItemRow}>
@@ -1047,7 +1048,7 @@ export default function PlantDetailScreen() {
                       <View style={[styles.compareCol, { backgroundColor: colors.background, borderColor: colors.border }]}>
                         <Text style={[styles.compareColHeader, { color: colors.primary }]}>Registro B</Text>
                         <Text style={[styles.compareColDate, { color: colors.text }]}>{entryB.date}</Text>
-                        <Image source={{ uri: entryB.image }} style={styles.compareColImage} contentFit="cover" />
+                        <Image source={resolveImageSource(entryB.image)} style={styles.compareColImage} contentFit="cover" />
                         
                         <View style={styles.compareColStats}>
                           <View style={styles.compareStatItemRow}>
@@ -1108,6 +1109,15 @@ export default function PlantDetailScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Floating Chat with Greeny FAB */}
+      <Pressable 
+        onPress={() => router.push({ pathname: '/chat', params: { plantId: plant.id } })} 
+        style={[styles.floatingChatFab, { backgroundColor: colors.primary }]}
+      >
+        <Ionicons name="chatbubble-ellipses" size={20} color="#FFFFFF" />
+        <Text style={styles.floatingChatFabText}>Consultar a Greeny</Text>
+      </Pressable>
 
     </View>
   );
@@ -2025,6 +2035,28 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
     paddingHorizontal: 20,
+  },
+  floatingChatFab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 6,
+    zIndex: 999,
+  },
+  floatingChatFabText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
 });
 

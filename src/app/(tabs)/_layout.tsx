@@ -79,12 +79,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="community"
         options={{
-          title: 'Explorar',
-          headerTitle: 'Biblioteca Botánica 🔍',
+          title: 'Comunidad',
+          headerTitle: 'Comunidad Verde 👥',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'search' : 'search-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'people' : 'people-outline'} size={24} color={color} />
           ),
         }}
       />

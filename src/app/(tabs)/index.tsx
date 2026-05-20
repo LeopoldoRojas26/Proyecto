@@ -35,6 +35,25 @@ export default function MyPlantsScreen() {
         </View>
       </View>
 
+      {/* Quick Action Chips Bar */}
+      <View style={styles.actionChipsBar}>
+        <Pressable 
+          onPress={() => router.push('/explore')} 
+          style={[styles.actionChip, { backgroundColor: colors.primaryLight, borderColor: colors.primary + '22' }]}
+        >
+          <Ionicons name="search" size={16} color={colors.primary} />
+          <Text style={[styles.actionChipText, { color: colors.primary }]}>Biblioteca Botánica</Text>
+        </Pressable>
+
+        <Pressable 
+          onPress={() => router.push('/chat')} 
+          style={[styles.actionChip, { backgroundColor: colors.secondaryLight, borderColor: colors.secondary + '22' }]}
+        >
+          <Ionicons name="chatbubbles-outline" size={16} color={colors.secondary} />
+          <Text style={[styles.actionChipText, { color: colors.secondary }]}>Chat con Greeny</Text>
+        </Pressable>
+      </View>
+
       {/* Stats Summary */}
       <View style={styles.statsContainer}>
         <View style={[styles.statBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -218,5 +237,24 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 13,
+  },
+  actionChipsBar: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+  },
+  actionChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  actionChipText: {
+    fontSize: 11,
+    fontWeight: 'bold',
   },
 });

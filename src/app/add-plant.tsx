@@ -7,6 +7,7 @@ import { Colors } from '@/constants/Colors';
 import { usePlants, UserPlant } from '@/context/PlantsContext';
 import { useReminders } from '@/context/RemindersContext';
 import { EXPLORE_LIBRARY } from '@/constants/mockData';
+import { resolveImageSource } from '@/utils/imageResolver';
 
 const PRESET_IMAGES = [
   { id: 'img1', name: 'Monstera', url: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=400&auto=format&fit=crop&q=80' },
@@ -294,7 +295,7 @@ export default function AddPlantScreen() {
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>Foto de la planta</Text>
             <View style={styles.imagePreviewContainer}>
-              <Image source={{ uri: selectedImage }} style={styles.mainPreviewImage} contentFit="cover" />
+              <Image source={resolveImageSource(selectedImage)} style={styles.mainPreviewImage} contentFit="cover" />
             </View>
             {!isFromLibrary && (
               <View style={styles.imagesGrid}>

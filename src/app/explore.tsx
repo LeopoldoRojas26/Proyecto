@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { StyleSheet, Text, View, FlatList, TextInput, Pressable, useColorScheme, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Stack, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { EXPLORE_LIBRARY, Plant } from '@/constants/mockData';
 import PlantCard from '@/components/PlantCard';
@@ -213,6 +214,14 @@ export default function ExploreScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen 
+        options={{
+          headerTitle: 'Biblioteca Botánica 🔍',
+          headerStyle: { backgroundColor: colors.primary },
+          headerTintColor: '#FFFFFF',
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      />
       <FlatList
         data={filteredPlants}
         keyExtractor={(item) => item.id}

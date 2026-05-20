@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Plant } from '@/constants/mockData';
 import { Colors } from '@/constants/Colors';
 
+import { resolveImageSource } from '@/utils/imageResolver';
+
 interface PlantCardProps {
   plant: Plant;
 }
@@ -38,7 +40,7 @@ export default function PlantCard({ plant }: PlantCardProps) {
     >
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: plant.image }}
+          source={resolveImageSource(plant.image)}
           style={styles.image}
           contentFit="cover"
           transition={300}

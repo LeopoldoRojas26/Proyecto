@@ -3,6 +3,9 @@ import { StyleSheet, Text, View, ScrollView, Pressable, useColorScheme, Activity
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { resolveImageSource } from '@/utils/imageResolver';
+
+const CLOROSIS_IMG = '@asset/clorosis';
 
 interface MockDiagnosisResult {
   problemName: string;
@@ -14,46 +17,91 @@ interface MockDiagnosisResult {
 const SAMPLE_PROBLEMS = [
   {
     id: 'prob1',
-    label: 'Hojas Amarillas (Clorosis)',
-    image: 'https://images.unsplash.com/photo-1597055181300-e3633a207518?w=600&auto=format&fit=crop&q=80', // Ficus
+    label: 'Clorosis Férrica',
+    image: CLOROSIS_IMG,
     result: {
-      problemName: 'Clorosis Férrica (Falta de Hierro)',
+      problemName: 'Clorosis Férrica (Deficiencia de Hierro)',
       confidence: '92% de coincidencia',
-      cause: 'Deficiencia de hierro disponible en el sustrato, comúnmente causada por regar con agua de grifo muy alcalina (con mucha cal).',
+      cause: 'El sustrato tiene un pH demasiado alto (alcalino), lo que bloquea la absorción de hierro por las raíces, o se está regando con agua de grifo dura y muy calcárea.',
       treatment: [
         'Aplica quelato de hierro diluido en el agua de riego.',
-        'Riega con agua de lluvia, destilada o reposada (mínimo 24h).',
-        'Verifica que el pH del sustrato esté en un rango adecuado (entre 5.5 y 6.5).'
+        'Acidifica el agua de riego con unas gotas de limón o vinagre (pH ideal 5.5 - 6.5).',
+        'Riega con agua de lluvia o filtrada siempre que sea posible.'
       ]
     }
   },
   {
     id: 'prob2',
-    label: 'Manchas Secas (Falta de Humedad)',
+    label: 'Manchas Secas',
     image: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=600&auto=format&fit=crop&q=80', // Monstera
     result: {
-      problemName: 'Humedad Ambiental Baja / Quemadura',
+      problemName: 'Puntas Secas por Baja Humedad',
       confidence: '88% de coincidencia',
-      cause: 'El aire ambiental está excesivamente seco, agravado por exposición directa al sol o corrientes de aire caliente provenientes de calefactores.',
+      cause: 'La humedad ambiental de la habitación es menor al 40%. Se agrava por calefacción, aire acondicionado o corrientes de aire directas.',
       treatment: [
-        'Agrupa tus plantas para crear un microclima húmedo.',
-        'Pulveriza agua templada en las hojas a diario o instala un humidificador.',
-        'Aleja la planta de las ventanas con sol directo del mediodía.'
+        'Agrupa plantas tropicales para crear un microclima húmedo y natural.',
+        'Pulveriza las hojas diariamente o coloca un plato inferior con piedras húmedas sin que toque la maceta.',
+        'Aleja la planta de corrientes directas de aire de calefactores o ventiladores.'
       ]
     }
   },
   {
     id: 'prob3',
-    label: 'Polvo Blanco (Hongo Mildiu)',
+    label: 'Polvo Blanco',
     image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80', // Rosal
     result: {
-      problemName: 'Mildiu Polvoriento (Oídio)',
+      problemName: 'Oídio / Mildiu Polvoriento',
       confidence: '95% de coincidencia',
-      cause: 'Hongo que prolifera en condiciones de alta humedad en el suelo combinada con aire estancado y follaje permanentemente mojado.',
+      cause: 'Hongo fúngico favorecido por la combinación de alta humedad en la base, aire estancado y hojas mojadas durante la noche.',
       treatment: [
-        'Poda y desecha las hojas gravemente infectadas (no las uses para compost).',
-        'Riega la base directamente; evita mojar las hojas.',
-        'Aplica un fungicida orgánico de jabón potásico y bicarbonato de sodio.'
+        'Poda inmediatamente las hojas afectadas y límpialas de la base para evitar la dispersión de esporas.',
+        'Evita regar las hojas por encima; riega siempre directamente al sustrato.',
+        'Aplica un fungicida orgánico a base de leche de vaca diluida (1 parte de leche por 9 de agua) o bicarbonato con jabón potásico.'
+      ]
+    }
+  },
+  {
+    id: 'prob4',
+    label: 'Hojas Blandas',
+    image: 'https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?w=600&auto=format&fit=crop&q=80', // Suculenta Echeveria
+    result: {
+      problemName: 'Pudrición de Raíces por Exceso de Agua',
+      confidence: '94% de coincidencia',
+      cause: 'El sustrato retiene demasiada agua por falta de drenaje o riegos muy frecuentes, provocando asfixia radicular y proliferación de hongos patógenos.',
+      treatment: [
+        'Suspende el riego inmediatamente y retira las hojas basales que estén amarillas o translúcidas.',
+        'Extrae la planta de la maceta y corta las raíces negras, blandas o con mal olor.',
+        'Trasplanta a una maceta con agujero de drenaje usando un sustrato poroso (50% tierra, 50% perlita o arena de sílice).'
+      ]
+    }
+  },
+  {
+    id: 'prob5',
+    label: 'Quemadura Solar',
+    image: 'https://images.unsplash.com/photo-1596547609652-9cf5d8d76921?w=600&auto=format&fit=crop&q=80', // Poto
+    result: {
+      problemName: 'Quemadura Solar Directa (Estrés Lumínico)',
+      confidence: '89% de coincidencia',
+      cause: 'Exposición a rayos solares intensos directos (especialmente en horas del mediodía) a través de una ventana que actúa como lupa, destruyendo la clorofila.',
+      treatment: [
+        'Mueve la planta a un lugar con luz indirecta brillante o coloca una cortina traslúcida para filtrar el sol.',
+        'No cortes la hoja entera a menos que esté dañada en más del 70%; el resto sigue haciendo fotosíntesis.',
+        'Evita pulverizar agua sobre las hojas mientras reciban sol directo para prevenir el efecto lupa.'
+      ]
+    }
+  },
+  {
+    id: 'prob6',
+    label: 'Araña Roja',
+    image: 'https://images.unsplash.com/photo-1628352621029-805797bc4982?w=600&auto=format&fit=crop&q=80', // Araña Roja / Ácaros en tallo
+    result: {
+      problemName: 'Infestación de Ácaros (Araña Roja)',
+      confidence: '91% de coincidencia',
+      cause: 'Plaga de diminutos ácaros que succionan la savia celular, favorecidos por ambientes muy secos, cálidos y con poca circulación de aire.',
+      treatment: [
+        'Lava la planta con agua a presión bajo el grifo para desalojar mecánicamente a los ácaros.',
+        'Incrementa sustancialmente la humedad ambiental pulverizando el follaje con regularidad (la araña roja detesta la humedad).',
+        'Aplica aceite de neem o jabón potásico diluido por el haz y el envés de todas las hojas cada 5 días durante 3 semanas.'
       ]
     }
   }
@@ -63,7 +111,7 @@ export default function DiagnoseScreen() {
   const colorScheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const colors = Colors[colorScheme];
 
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
   const [selectedProblem, setSelectedProblem] = useState<typeof SAMPLE_PROBLEMS[0] | null>(null);
   const [status, setStatus] = useState<'idle' | 'analyzing' | 'completed'>('idle');
   const [progressText, setProgressText] = useState('');
@@ -128,7 +176,7 @@ export default function DiagnoseScreen() {
             {/* Upload Area */}
             {selectedPhoto ? (
               <View style={styles.imagePreviewContainer}>
-                <Image source={{ uri: selectedPhoto }} style={styles.previewImage} contentFit="cover" />
+                <Image source={resolveImageSource(selectedPhoto)} style={styles.previewImage} contentFit="cover" />
                 <Pressable 
                   onPress={() => setSelectedPhoto(null)} 
                   style={[styles.removeBtn, { backgroundColor: colors.notification }]}
@@ -151,7 +199,11 @@ export default function DiagnoseScreen() {
             {!selectedPhoto && (
               <View style={styles.samplesSection}>
                 <Text style={[styles.samplesTitle, { color: colors.text }]}>O selecciona un caso de ejemplo:</Text>
-                <View style={styles.sampleGrid}>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false} 
+                  contentContainerStyle={styles.sampleScroll}
+                >
                   {SAMPLE_PROBLEMS.map((prob) => (
                     <Pressable
                       key={prob.id}
@@ -161,13 +213,13 @@ export default function DiagnoseScreen() {
                         { backgroundColor: colors.surface, borderColor: colors.border }
                       ]}
                     >
-                      <Image source={{ uri: prob.image }} style={styles.sampleThumb} contentFit="cover" />
+                      <Image source={resolveImageSource(prob.image)} style={styles.sampleThumb} contentFit="cover" />
                       <Text style={[styles.sampleLabel, { color: colors.text }]} numberOfLines={1}>
                         {prob.label}
                       </Text>
                     </Pressable>
                   ))}
-                </View>
+                </ScrollView>
               </View>
             )}
 
@@ -187,7 +239,7 @@ export default function DiagnoseScreen() {
         {/* State 2: Analyzing (Spinner + Progress) */}
         {status === 'analyzing' && (
           <View style={[styles.analyzingContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Image source={{ uri: selectedPhoto! }} style={styles.analyzingImage} contentFit="cover" />
+            <Image source={resolveImageSource(selectedPhoto)} style={styles.analyzingImage} contentFit="cover" />
             <View style={styles.loaderOverlay}>
               <ActivityIndicator size="large" color="#FFFFFF" style={{ marginBottom: 16 }} />
               <Text style={styles.analyzingText}>{progressText}</Text>
@@ -215,7 +267,7 @@ export default function DiagnoseScreen() {
 
               {/* Image and confidence */}
               <View style={styles.resultImageRow}>
-                <Image source={{ uri: selectedPhoto! }} style={styles.resultThumb} contentFit="cover" />
+                <Image source={resolveImageSource(selectedPhoto)} style={styles.resultThumb} contentFit="cover" />
                 <View style={[styles.confidenceBadge, { backgroundColor: colors.primaryLight }]}>
                   <Ionicons name="ribbon-outline" size={16} color={colors.primary} />
                   <Text style={[styles.confidenceText, { color: colors.primary }]}>
@@ -328,12 +380,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  sampleGrid: {
+  sampleScroll: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
+    paddingRight: 20,
   },
   sampleCard: {
-    flex: 1,
+    width: 130,
     borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
