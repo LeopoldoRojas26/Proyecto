@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { usePlants, UserPlant } from '@/context/PlantsContext';
+import { useReminders } from '@/context/RemindersContext';
 import { EXPLORE_LIBRARY } from '@/constants/mockData';
 
 const PRESET_IMAGES = [
@@ -23,6 +24,7 @@ export default function AddPlantScreen() {
   const colorScheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const colors = Colors[colorScheme];
   const { plants, addPlant, updatePlant } = usePlants();
+  const { addReminder } = useReminders();
 
   // Form Fields
   const [nickname, setNickname] = useState('');
@@ -118,8 +120,34 @@ export default function AddPlantScreen() {
         await updatePlant(editId, plantPayload);
         Alert.alert('Éxito', 'Planta actualizada correctamente.');
       } else {
-        await addPlant(plantPayload);
-        Alert.alert('Éxito', 'Planta añadida a tu jardín.');
+        const newPlantId = await addPlant(plantPayload);
+        
+        let waterDays = 7;
+        const match = waterFrequency.match(/\d+/);
+        if (match) waterDays = parseInt(match[0]);
+        
+        const nextWateringDate = new Date(Date.now() + waterDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        await addReminder({
+          plantId: newPlantId,
+          plantName: plantPayload.nickname || plantPayload.commonName,
+          taskType: 'Riego',
+          frequencyDays: waterDays,
+          nextDate: nextWateringDate,
+          time: '08:00',
+        });
+
+        const nextFertilizerDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        await addReminder({
+          plantId: newPlantId,
+          plantName: plantPayload.nickname || plantPayload.commonName,
+          taskType: 'Abono',
+          frequencyDays: 30,
+          nextDate: nextFertilizerDate,
+          time: '09:00',
+        });
+
+        Alert.alert('Éxito', 'Planta y recordatorios añadidos a tu jardín.');
       }
       router.dismissAll(); // Close the modal and return
       router.replace('/(tabs)');

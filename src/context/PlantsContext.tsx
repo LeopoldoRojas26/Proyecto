@@ -11,7 +11,7 @@ export interface UserPlant extends Plant {
 interface PlantsContextType {
   plants: UserPlant[];
   loading: boolean;
-  addPlant: (plantData: Omit<UserPlant, 'id'>) => Promise<void>;
+  addPlant: (plantData: Omit<UserPlant, 'id'>) => Promise<string>;
   updatePlant: (id: string, plantData: Partial<UserPlant>) => Promise<void>;
   deletePlant: (id: string) => Promise<void>;
 }
@@ -55,12 +55,14 @@ export function PlantsProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addPlant = async (plantData: Omit<UserPlant, 'id'>) => {
+    const newId = Date.now().toString();
     const newPlant: UserPlant = {
       ...plantData,
-      id: Date.now().toString(), // Generate unique ID
+      id: newId,
     };
     const updatedPlants = [...plants, newPlant];
     await savePlants(updatedPlants);
+    return newId;
   };
 
   const updatePlant = async (id: string, plantData: Partial<UserPlant>) => {

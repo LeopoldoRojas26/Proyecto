@@ -4,6 +4,7 @@ import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native
 import React from 'react';
 import { Colors } from '@/constants/Colors';
 import { PlantsProvider } from '@/context/PlantsContext';
+import { RemindersProvider } from '@/context/RemindersContext';
 
 export default function RootLayout() {
   const colorScheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
@@ -35,9 +36,10 @@ export default function RootLayout() {
 
   return (
     <PlantsProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <RemindersProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen 
             name="plant/[id]" 
             options={{ 
@@ -68,8 +70,24 @@ export default function RootLayout() {
               presentation: 'modal',
             }} 
           />
+          <Stack.Screen 
+            name="add-reminder" 
+            options={{ 
+              headerShown: true, 
+              headerTitle: 'Añadir Recordatorio',
+              headerStyle: {
+                backgroundColor: colors.primary,
+              },
+              headerTintColor: '#FFFFFF',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              presentation: 'modal',
+            }} 
+          />
         </Stack>
       </ThemeProvider>
+      </RemindersProvider>
     </PlantsProvider>
   );
 }
