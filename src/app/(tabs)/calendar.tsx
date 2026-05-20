@@ -55,7 +55,7 @@ export default function CalendarScreen() {
   const prevMonth = () => setCurrentMonthDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentMonthDate(new Date(year, month + 1, 1));
 
-  const calendarSlots = Array.from({ length: startOffset }, () => null)
+  const calendarSlots: (number | null)[] = Array.from({ length: startOffset }, () => null as number | null)
     .concat(Array.from({ length: daysInMonth }, (_, i) => i + 1));
 
   const getDayString = (d: number) => {

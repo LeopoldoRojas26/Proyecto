@@ -3,10 +3,12 @@ import { useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Colors } from '@/constants/Colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const colorScheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const colors = Colors[colorScheme];
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -21,8 +23,8 @@ export default function TabLayout() {
           shadowRadius: 10,
           shadowColor: '#000000',
           shadowOffset: { width: 0, height: -2 },
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           paddingTop: 8,
         },
         tabBarLabelStyle: {

@@ -8,9 +8,10 @@ import { Colors } from '@/constants/Colors';
 
 interface PlantCardProps {
   plant: Plant;
+  onAdd?: (plant: Plant) => void;
 }
 
-export default function PlantCard({ plant }: PlantCardProps) {
+export default function PlantCard({ plant, onAdd }: PlantCardProps) {
   const colorScheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const colors = Colors[colorScheme];
 
@@ -53,6 +54,13 @@ export default function PlantCard({ plant }: PlantCardProps) {
             {plant.healthStatus.emoji} {plant.healthStatus.text}
           </Text>
         </View>
+        
+        {/* Toxicity Badge (if present) */}
+        {plant.petToxic && (
+          <View style={[styles.toxicityBadge, { backgroundColor: '#FFEBEE' }]}>
+             <Ionicons name="warning" size={10} color="#D32F2F" />
+          </View>
+        )}
       </View>
 
       <View style={styles.details}>
@@ -63,11 +71,25 @@ export default function PlantCard({ plant }: PlantCardProps) {
           {subLabel}
         </Text>
         
-        <View style={[styles.wateringBadge, { backgroundColor: colors.primaryLight }]}>
-          <Ionicons name="water" size={12} color={colors.primary} />
-          <Text style={[styles.wateringText, { color: colors.primary }]}>
-            Riego: {plant.nextWatering}
-          </Text>
+        <View style={styles.footerRow}>
+          <View style={[styles.wateringBadge, { backgroundColor: colors.primaryLight }]}>
+            <Ionicons name="water" size={12} color={colors.primary} />
+            <Text style={[styles.wateringText, { color: colors.primary }]}>
+              Riego: {plant.nextWatering}
+            </Text>
+          </View>
+
+          {onAdd && (
+            <Pressable 
+              style={[styles.addBtn, { backgroundColor: colors.primary }]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onAdd(plant);
+              }}
+            >
+              <Ionicons name="add" size={16} color="#FFF" />
+            </Pressable>
+          )}
         </View>
       </View>
     </Pressable>
@@ -137,5 +159,30 @@ const styles = StyleSheet.create({
   wateringText: {
     fontSize: 10,
     fontWeight: '600',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  addBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  toxicityBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    padding: 4,
+    borderRadius: 12,
   },
 });

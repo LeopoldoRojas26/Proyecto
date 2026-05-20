@@ -33,7 +33,7 @@ export default function AddPlantScreen() {
   const [acquisitionDate, setAcquisitionDate] = useState('');
   const [waterFrequency, setWaterFrequency] = useState('Cada 7 días');
   const [selectedImage, setSelectedImage] = useState(PRESET_IMAGES[0].url);
-  const [category, setCategory] = useState<'Interior' | 'Exterior' | 'Suculentas' | 'Huerto'>('Interior');
+  const [category, setCategory] = useState<'Interior' | 'Exterior' | 'Suculentas' | 'Huerto' | 'Cactus' | 'Aromáticas' | 'Ornamentales'>('Interior');
   const [light, setLight] = useState<'Sombra' | 'Semisombra' | 'Sol directo'>('Semisombra');
   const [difficulty, setDifficulty] = useState<'Fácil' | 'Medio' | 'Difícil'>('Fácil');
   
@@ -249,7 +249,7 @@ export default function AddPlantScreen() {
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: colors.text }]}>Categoría</Text>
                 <View style={styles.chipRow}>
-                  {['Interior', 'Exterior', 'Suculentas', 'Huerto'].map((cat) => (
+                  {['Interior', 'Exterior', 'Suculentas', 'Huerto', 'Cactus', 'Aromáticas', 'Ornamentales'].map((cat) => (
                     <Pressable
                       key={cat}
                       onPress={() => setCategory(cat as any)}
