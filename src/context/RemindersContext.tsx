@@ -32,7 +32,9 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
-  }),
+    shouldShowBanner: true,
+    shouldShowList: true,
+  } as any),
 });
 
 export function RemindersProvider({ children }: { children: React.ReactNode }) {
@@ -93,7 +95,7 @@ export function RemindersProvider({ children }: { children: React.ReactNode }) {
           body: `Tarea pendiente: ${reminder.taskType}`,
           data: { plantId: reminder.plantId, taskId: reminder.id },
         },
-        trigger,
+        trigger: trigger as any,
       });
       return id;
     } catch (e) {
