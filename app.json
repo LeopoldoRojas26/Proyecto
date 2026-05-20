@@ -35,8 +35,12 @@
           }
         }
       ],
-      "expo-font",
-      "expo-web-browser"
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to determine your climatic zone."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

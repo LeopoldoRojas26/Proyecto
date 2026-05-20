@@ -1,103 +1,168 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, useColorScheme, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, Pressable, useColorScheme, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
-import { MOCK_CALENDAR_EVENTS, CalendarEvent } from '@/constants/mockData';
+import { useReminders } from '@/context/RemindersContext';
+import { usePlants } from '@/context/PlantsContext';
+import * as Location from 'expo-location';
+import { ClimaticZone, determineZoneFromCoords, getOptimalPeriods } from '@/utils/climate';
 
 export default function CalendarScreen() {
   const colorScheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const colors = Colors[colorScheme];
+  
+  const { reminders, completeReminder } = useReminders();
+  const { plants } = usePlants();
 
-  // Set default selected date to May 19th, 2026 (matching mock data date)
-  const [selectedDate, setSelectedDate] = useState<string>('2026-05-19');
+  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [zone, setZone] = useState<ClimaticZone>('Norte');
+  const [loadingZone, setLoadingZone] = useState(true);
 
-  // Month info: May 2026
-  // May 1st, 2026 is a Friday.
-  // Weeks start on Monday. Friday is index 4 (0: Mon, 1: Tue, 2: Wed, 3: Thu, 4: Fri, 5: Sat, 6: Sun)
-  const daysInMonth = 31;
-  const startOffset = 4; // 4 empty slots for Mon, Tue, Wed, Thu
-  const totalSlots = daysInMonth + startOffset;
+  // Get location
+  useEffect(() => {
+    (async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setLoadingZone(false);
+          return;
+        }
 
-  // Generate days array
-  const calendarSlots = [];
-  for (let i = 0; i < startOffset; i++) {
-    calendarSlots.push(null);
-  }
-  for (let i = 1; i <= daysInMonth; i++) {
-    calendarSlots.push(i);
-  }
+        let location = await Location.getCurrentPositionAsync({});
+        const detectedZone = determineZoneFromCoords(location.coords.latitude);
+        setZone(detectedZone);
+      } catch (error) {
+        console.log("Error getting location", error);
+      } finally {
+        setLoadingZone(false);
+      }
+    })();
+  }, []);
 
-  // Group events by date for easy lookup in calendar cells
-  const getEventsForDay = (day: number) => {
-    const dateStr = `2026-05-${day.toString().padStart(2, '0')}`;
-    return MOCK_CALENDAR_EVENTS.filter(event => event.date === dateStr);
+  const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    let day = new Date(year, month, 1).getDay();
+    // JS days: 0=Sun, 1=Mon... we want Mon=0, Sun=6
+    return day === 0 ? 6 : day - 1;
   };
 
-  const getDayString = (day: number) => {
-    return `2026-05-${day.toString().padStart(2, '0')}`;
+  const year = currentMonthDate.getFullYear();
+  const month = currentMonthDate.getMonth();
+  const daysInMonth = getDaysInMonth(year, month);
+  const startOffset = getFirstDayOfMonth(year, month);
+
+  const prevMonth = () => setCurrentMonthDate(new Date(year, month - 1, 1));
+  const nextMonth = () => setCurrentMonthDate(new Date(year, month + 1, 1));
+
+  const calendarSlots = Array.from({ length: startOffset }, () => null)
+    .concat(Array.from({ length: daysInMonth }, (_, i) => i + 1));
+
+  const getDayString = (d: number) => {
+    const y = year;
+    const m = (month + 1).toString().padStart(2, '0');
+    const day = d.toString().padStart(2, '0');
+    return `${y}-${m}-${day}`;
   };
 
-  const selectedDayEvents = MOCK_CALENDAR_EVENTS.filter(event => event.date === selectedDate);
-  const selectedDayNum = parseInt(selectedDate.split('-')[2]);
+  const todayStr = new Date().toISOString().split('T')[0];
 
-  // Helper to format Spanish dates
-  const formatFriendlyDate = (dateStr: string) => {
-    const parts = dateStr.split('-');
-    const day = parseInt(parts[2]);
-    const months = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    return `${day} de ${months[4]} de ${parts[0]}`;
-  };
-
-  const getEventIcon = (type: CalendarEvent['type']) => {
-    switch (type) {
-      case 'Siembra': return 'leaf';
-      case 'Poda': return 'cut';
-      case 'Trasplante': return 'trending-up';
-      case 'Abono': return 'flask';
-      case 'Riego': return 'water';
+  const getTaskColor = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'riego': return colors.info || '#2196F3';
+      case 'poda': return colors.warning || '#FF9800';
+      case 'abono': return colors.secondary || '#4CAF50';
+      case 'trasplante': return colors.primary;
+      default: return colors.textSecondary;
     }
   };
+
+  const getTaskIcon = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'riego': return 'water';
+      case 'poda': return 'cut';
+      case 'abono': return 'leaf';
+      case 'trasplante': return 'trending-up';
+      default: return 'notifications';
+    }
+  };
+
+  const getEventsForDate = (dateStr: string) => {
+    return reminders.filter(r => r.nextDate === dateStr && !r.done);
+  };
+
+  const formatFriendlyMonth = (m: number, y: number) => {
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    return `${months[m]} ${y}`;
+  };
+
+  // Next 7 days tasks
+  const next7DaysTasks = reminders.filter(r => {
+    if (r.done) return false;
+    const taskDate = new Date(r.nextDate);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const diffTime = taskDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 7;
+  }).sort((a,b) => a.nextDate.localeCompare(b.nextDate));
+
+  // Optimal periods for this month
+  const currentMonthOptimal: {plant: string, task: string, desc: string}[] = [];
+  plants.forEach(p => {
+    const periods = getOptimalPeriods(zone, p.category);
+    periods.forEach(per => {
+      if (month >= per.startMonth && month <= per.endMonth) {
+        currentMonthOptimal.push({ plant: p.nickname || p.commonName, task: per.type, desc: per.description });
+      }
+    });
+  });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
+        {/* Zone Selector */}
+        <View style={styles.zoneContainer}>
+          <Text style={{color: colors.textSecondary, fontSize: 12}}>Zona Climática:</Text>
+          <View style={styles.zoneButtons}>
+            {['Norte', 'Tropical', 'Sur'].map(z => (
+              <Pressable 
+                key={z} 
+                onPress={() => setZone(z as ClimaticZone)}
+                style={[styles.zoneBtn, zone === z && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+              >
+                <Text style={[styles.zoneBtnText, {color: colors.text}, zone === z && {color: '#FFF'}]}>{z}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
         {/* Calendar Card */}
         <View style={[styles.calendarCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {/* Calendar Header */}
           <View style={styles.calendarHeader}>
-            <Pressable style={styles.arrowBtn}>
+            <Pressable onPress={prevMonth} style={styles.arrowBtn}>
               <Ionicons name="chevron-back" size={20} color={colors.text} />
             </Pressable>
-            <Text style={[styles.monthTitle, { color: colors.text }]}>Mayo 2026</Text>
-            <Pressable style={styles.arrowBtn}>
+            <Text style={[styles.monthTitle, { color: colors.text }]}>{formatFriendlyMonth(month, year)}</Text>
+            <Pressable onPress={nextMonth} style={styles.arrowBtn}>
               <Ionicons name="chevron-forward" size={20} color={colors.text} />
             </Pressable>
           </View>
 
-          {/* Weekday headers */}
           <View style={styles.weekdaysContainer}>
             {['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'].map((day, index) => (
-              <Text key={index} style={[styles.weekdayText, { color: colors.textSecondary }]}>
-                {day}
-              </Text>
+              <Text key={index} style={[styles.weekdayText, { color: colors.textSecondary }]}>{day}</Text>
             ))}
           </View>
 
-          {/* Days Grid */}
           <View style={styles.daysGrid}>
             {calendarSlots.map((day, index) => {
-              if (day === null) {
-                return <View key={`empty-${index}`} style={styles.dayCell} />;
-              }
-
+              if (day === null) return <View key={`empty-${index}`} style={styles.dayCell} />;
               const dateStr = getDayString(day);
               const isSelected = selectedDate === dateStr;
-              const isToday = day === 19; // Simulate May 19 as today
-              const dayEvents = getEventsForDay(day);
+              const isToday = todayStr === dateStr;
+              const dayEvents = getEventsForDate(dateStr);
 
               return (
                 <Pressable
@@ -109,28 +174,15 @@ export default function CalendarScreen() {
                     isSelected && [styles.selectedCell, { backgroundColor: colors.primary }],
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.dayText,
-                      { color: colors.text },
-                      isSelected && { color: '#FFFFFF', fontWeight: 'bold' },
-                      isToday && !isSelected && { color: colors.primary, fontWeight: 'bold' }
-                    ]}
-                  >
+                  <Text style={[styles.dayText, { color: colors.text }, isSelected && { color: '#FFFFFF', fontWeight: 'bold' }, isToday && !isSelected && { color: colors.primary, fontWeight: 'bold' }]}>
                     {day}
                   </Text>
                   
-                  {/* Event Dots */}
                   <View style={styles.dotsContainer}>
-                    {dayEvents.map((event, idx) => (
-                      <View 
-                        key={idx} 
-                        style={[
-                          styles.dot, 
-                          { backgroundColor: isSelected ? '#FFFFFF' : event.color }
-                        ]} 
-                      />
+                    {dayEvents.slice(0, 3).map((event, idx) => (
+                      <View key={idx} style={[styles.dot, { backgroundColor: isSelected ? '#FFFFFF' : getTaskColor(event.taskType) }]} />
                     ))}
+                    {dayEvents.length > 3 && <View style={[styles.dot, {backgroundColor: colors.textSecondary}]} />}
                   </View>
                 </Pressable>
               );
@@ -140,71 +192,57 @@ export default function CalendarScreen() {
 
         {/* Selected Day Agenda */}
         <View style={styles.agendaSection}>
-          <Text style={[styles.agendaTitle, { color: colors.text }]}>
-            Tareas del {formatFriendlyDate(selectedDate)}
-          </Text>
-
-          {selectedDayEvents.length > 0 ? (
-            selectedDayEvents.map((event) => {
-              return (
-                <View 
-                  key={event.id} 
-                  style={[
-                    styles.eventCard, 
-                    { 
-                      backgroundColor: colors.surface, 
-                      borderColor: colors.border,
-                      borderLeftColor: event.color
-                    }
-                  ]}
-                >
-                  <View style={[styles.iconBox, { backgroundColor: event.color + '15' }]}>
-                    <Ionicons name={getEventIcon(event.type) as any} size={20} color={event.color} />
-                  </View>
-                  
-                  <View style={styles.eventDetails}>
-                    <View style={styles.eventHeaderRow}>
-                      <Text style={[styles.eventPlant, { color: colors.text }]}>{event.plantName}</Text>
-                      <View style={[styles.typeBadge, { backgroundColor: event.color + '15' }]}>
-                        <Text style={[styles.typeBadgeText, { color: event.color }]}>{event.type}</Text>
-                      </View>
-                    </View>
-                    <Text style={[styles.eventNotes, { color: colors.textSecondary }]}>{event.notes}</Text>
-                  </View>
+          <Text style={[styles.agendaTitle, { color: colors.text }]}>Tareas del {selectedDate}</Text>
+          
+          {getEventsForDate(selectedDate).length > 0 ? (
+            getEventsForDate(selectedDate).map((event) => (
+              <View key={event.id} style={[styles.eventCard, { backgroundColor: colors.surface, borderColor: colors.border, borderLeftColor: getTaskColor(event.taskType) }]}>
+                <Pressable onPress={() => completeReminder(event.id)}>
+                   <Ionicons name="ellipse-outline" size={24} color={colors.textSecondary} />
+                </Pressable>
+                <View style={styles.eventDetails}>
+                  <Text style={[styles.eventPlant, { color: colors.text }]}>{event.plantName} - {event.taskType}</Text>
+                  <Text style={{fontSize: 12, color: colors.textSecondary}}>{event.time}</Text>
                 </View>
-              );
-            })
+              </View>
+            ))
           ) : (
-            <View style={[styles.noEventsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Ionicons name="happy-outline" size={36} color={colors.textSecondary} />
-              <Text style={[styles.noEventsText, { color: colors.textSecondary }]}>
-                No hay tareas programadas para este día. ¡Tus plantas están al día!
-              </Text>
-            </View>
+             <Text style={{color: colors.textSecondary, fontStyle: 'italic'}}>No hay tareas para este día.</Text>
           )}
+        </View>
 
-          {/* Monthly Summary Box */}
-          <Text style={[styles.agendaSubtitle, { color: colors.text, marginTop: 16 }]}>
-            Resumen del Mes (Mayo)
-          </Text>
-          <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.summaryItem}>
-              <View style={[styles.summaryDot, { backgroundColor: '#4CAF50' }]} />
-              <Text style={[styles.summaryLabel, { color: colors.text }]}>Siembra: 2</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <View style={[styles.summaryDot, { backgroundColor: '#FFA000' }]} />
-              <Text style={[styles.summaryLabel, { color: colors.text }]}>Poda: 1</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <View style={[styles.summaryDot, { backgroundColor: '#0288D1' }]} />
-              <Text style={[styles.summaryLabel, { color: colors.text }]}>Trasplante: 1</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <View style={[styles.summaryDot, { backgroundColor: '#8D6E63' }]} />
-              <Text style={[styles.summaryLabel, { color: colors.text }]}>Abono: 1</Text>
-            </View>
-          </View>
+        {/* Next 7 days view */}
+        <View style={styles.agendaSection}>
+           <Text style={[styles.agendaTitle, { color: colors.text, marginTop: 12 }]}>Próximos 7 días</Text>
+           {next7DaysTasks.length > 0 ? (
+             next7DaysTasks.slice(0,5).map(event => (
+               <View key={event.id} style={{flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6}}>
+                 <View style={[styles.dot, {backgroundColor: getTaskColor(event.taskType), width: 8, height: 8, borderRadius: 4}]} />
+                 <Text style={{color: colors.text, flex: 1}}>{event.plantName} ({event.taskType})</Text>
+                 <Text style={{color: colors.textSecondary, fontSize: 12}}>{event.nextDate}</Text>
+               </View>
+             ))
+           ) : (
+             <Text style={{color: colors.textSecondary}}>No hay tareas en los próximos 7 días.</Text>
+           )}
+        </View>
+
+        {/* Optimal Periods / Recomendaciones */}
+        <View style={styles.agendaSection}>
+           <Text style={[styles.agendaTitle, { color: colors.text, marginTop: 12 }]}>Recomendaciones del Mes ({formatFriendlyMonth(month, year)})</Text>
+           {currentMonthOptimal.length > 0 ? (
+             currentMonthOptimal.map((opt, idx) => (
+               <View key={idx} style={[styles.eventCard, { backgroundColor: colors.surface, borderColor: colors.border, paddingVertical: 8 }]}>
+                 <Ionicons name={getTaskIcon(opt.task) as any} size={20} color={getTaskColor(opt.task)} />
+                 <View style={styles.eventDetails}>
+                   <Text style={[styles.eventPlant, { color: colors.text, fontSize: 13 }]}>{opt.plant}: Época de {opt.task}</Text>
+                   <Text style={{fontSize: 11, color: colors.textSecondary}}>{opt.desc}</Text>
+                 </View>
+               </View>
+             ))
+           ) : (
+             <Text style={{color: colors.textSecondary}}>No hay tareas estacionales destacadas este mes para tus plantas.</Text>
+           )}
         </View>
 
       </ScrollView>
@@ -213,179 +251,28 @@ export default function CalendarScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    gap: 16,
-  },
-  calendarCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  arrowBtn: {
-    padding: 8,
-    borderRadius: 12,
-  },
-  monthTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  weekdaysContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  weekdayText: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  daysGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  dayCell: {
-    width: '14.28%', // 100% / 7
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-    marginVertical: 2,
-    position: 'relative',
-  },
-  dayText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  todayCell: {
-    borderWidth: 1.5,
-    borderRadius: 12,
-  },
-  selectedCell: {
-    borderRadius: 12,
-  },
-  dotsContainer: {
-    flexDirection: 'row',
-    position: 'absolute',
-    bottom: 4,
-    gap: 2,
-  },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-  },
-  agendaSection: {
-    gap: 12,
-  },
-  agendaTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 8,
-  },
-  agendaSubtitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  eventCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderLeftWidth: 6,
-    padding: 12,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  eventDetails: {
-    flex: 1,
-    gap: 4,
-  },
-  eventHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  eventPlant: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  typeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  typeBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  eventNotes: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  noEventsCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  noEventsText: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-    maxWidth: '80%',
-  },
-  summaryCard: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 12,
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  summaryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    width: '45%',
-    marginVertical: 4,
-  },
-  summaryDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  container: { flex: 1 },
+  scrollContent: { padding: 16, gap: 16, paddingBottom: 40 },
+  zoneContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: -4 },
+  zoneButtons: { flexDirection: 'row', gap: 6 },
+  zoneBtn: { borderWidth: 1, borderColor: '#ddd', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  zoneBtnText: { fontSize: 11, fontWeight: 'bold' },
+  calendarCard: { borderRadius: 20, borderWidth: 1, padding: 16, elevation: 2 },
+  calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  arrowBtn: { padding: 8 },
+  monthTitle: { fontSize: 16, fontWeight: 'bold' },
+  weekdaysContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  weekdayText: { flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 'bold' },
+  daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  dayCell: { width: '14.28%', height: 48, justifyContent: 'center', alignItems: 'center', borderRadius: 12, marginVertical: 2 },
+  dayText: { fontSize: 14, fontWeight: '500' },
+  todayCell: { borderWidth: 1.5 },
+  selectedCell: { borderRadius: 12 },
+  dotsContainer: { flexDirection: 'row', position: 'absolute', bottom: 4, gap: 2 },
+  dot: { width: 4, height: 4, borderRadius: 2 },
+  agendaSection: { gap: 8 },
+  agendaTitle: { fontSize: 16, fontWeight: 'bold' },
+  eventCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, borderLeftWidth: 6, padding: 12, gap: 12 },
+  eventDetails: { flex: 1, gap: 2 },
+  eventPlant: { fontSize: 14, fontWeight: 'bold' },
 });
