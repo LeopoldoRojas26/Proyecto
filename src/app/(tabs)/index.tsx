@@ -1,17 +1,26 @@
 import React from 'react';
-import { StyleSheet, Text, View, FlatList, useColorScheme, SafeAreaView, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, FlatList, useColorScheme, SafeAreaView, StatusBar, Pressable } from 'react-native';
+import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-import { MOCK_PLANTS } from '@/constants/mockData';
+import { usePlants } from '@/context/PlantsContext';
 import PlantCard from '@/components/PlantCard';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function MyPlantsScreen() {
   const colorScheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const colors = Colors[colorScheme];
+  const { plants, loading } = usePlants();
 
-  const totalPlants = MOCK_PLANTS.length;
-  const needsAttention = MOCK_PLANTS.filter(
-    (p) => p.healthStatus.text.toLowerCase().includes('atención') || p.healthStatus.text.toLowerCase().includes('hojas')
+  const totalPlants = plants.length;
+  const needsAttention = plants.filter(
+    (p) => 
+      p.healthStatus.text.toLowerCase().includes('atención') || 
+      p.healthStatus.text.toLowerCase().includes('alerta') ||
+      p.healthStatus.text.toLowerCase().includes('enferma')
+  ).length;
+
+  const riegosHoy = plants.filter(
+    (p) => p.nextWatering.toLowerCase().includes('hoy')
   ).length;
 
   const renderHeader = () => (
@@ -26,6 +35,7 @@ export default function MyPlantsScreen() {
         </View>
       </View>
 
+      {/* Stats Summary */}
       <View style={styles.statsContainer}>
         <View style={[styles.statBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Ionicons name="leaf" size={24} color={colors.primary} />
@@ -41,7 +51,7 @@ export default function MyPlantsScreen() {
         
         <View style={[styles.statBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Ionicons name="water" size={24} color={colors.info} />
-          <Text style={[styles.statNum, { color: colors.text }]}>2</Text>
+          <Text style={[styles.statNum, { color: colors.text }]}>{riegosHoy}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Riegos Hoy</Text>
         </View>
       </View>
@@ -53,15 +63,40 @@ export default function MyPlantsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+      
       <FlatList
-        data={MOCK_PLANTS}
+        data={plants}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <PlantCard plant={item} />}
         numColumns={2}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={renderHeader}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="leaf-outline" size={64} color={colors.textSecondary + '66'} style={{ marginBottom: 12 }} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>Tu jardín está vacío</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+              Comienza añadiendo una planta con el botón + o elige una de la biblioteca en "Explorar".
+            </Text>
+            <Pressable 
+              onPress={() => router.push('/add-plant')} 
+              style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
+            >
+              <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.emptyBtnText}>Añadir Planta</Text>
+            </Pressable>
+          </View>
+        }
       />
+
+      {/* Floating Action Button (FAB) */}
+      <Pressable 
+        onPress={() => router.push('/add-plant')} 
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+      >
+        <Ionicons name="add" size={28} color="#FFFFFF" />
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -69,9 +104,11 @@ export default function MyPlantsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
   },
   listContent: {
     padding: 8,
+    paddingBottom: 80, // Space for FAB
   },
   headerContainer: {
     paddingHorizontal: 8,
@@ -136,5 +173,50 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginVertical: 8,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  emptyBtnText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
 });

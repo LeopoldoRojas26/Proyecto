@@ -21,6 +21,9 @@ export default function PlantCard({ plant }: PlantCardProps) {
     });
   };
 
+  const displayName = 'nickname' in plant ? (plant as any).nickname : plant.commonName;
+  const subLabel = 'location' in plant ? (plant as any).location : plant.scientificName;
+
   return (
     <Pressable
       onPress={handlePress}
@@ -54,10 +57,10 @@ export default function PlantCard({ plant }: PlantCardProps) {
 
       <View style={styles.details}>
         <Text style={[styles.commonName, { color: colors.text }]} numberOfLines={1}>
-          {plant.commonName}
+          {displayName}
         </Text>
         <Text style={[styles.scientificName, { color: colors.textSecondary }]} numberOfLines={1}>
-          {plant.scientificName}
+          {subLabel}
         </Text>
         
         <View style={[styles.wateringBadge, { backgroundColor: colors.primaryLight }]}>

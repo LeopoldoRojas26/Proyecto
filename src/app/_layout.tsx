@@ -3,6 +3,7 @@ import { useColorScheme } from 'react-native';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import React from 'react';
 import { Colors } from '@/constants/Colors';
+import { PlantsProvider } from '@/context/PlantsContext';
 
 export default function RootLayout() {
   const colorScheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
@@ -33,25 +34,42 @@ export default function RootLayout() {
   };
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="plant/[id]" 
-          options={{ 
-            headerShown: true, 
-            headerTitle: 'Detalle de Planta',
-            headerStyle: {
-              backgroundColor: colors.primary,
-            },
-            headerTintColor: '#FFFFFF',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-            presentation: 'card',
-          }} 
-        />
-      </Stack>
-    </ThemeProvider>
+    <PlantsProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen 
+            name="plant/[id]" 
+            options={{ 
+              headerShown: true, 
+              headerTitle: 'Detalle de Planta',
+              headerStyle: {
+                backgroundColor: colors.primary,
+              },
+              headerTintColor: '#FFFFFF',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              presentation: 'card',
+            }} 
+          />
+          <Stack.Screen 
+            name="add-plant" 
+            options={{ 
+              headerShown: true, 
+              headerTitle: 'Añadir Planta',
+              headerStyle: {
+                backgroundColor: colors.primary,
+              },
+              headerTintColor: '#FFFFFF',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              presentation: 'modal',
+            }} 
+          />
+        </Stack>
+      </ThemeProvider>
+    </PlantsProvider>
   );
 }

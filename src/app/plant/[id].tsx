@@ -1,20 +1,26 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, useColorScheme, Pressable, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, useColorScheme, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
-import { MOCK_PLANTS, EXPLORE_LIBRARY } from '@/constants/mockData';
+import { usePlants } from '@/context/PlantsContext';
+import { EXPLORE_LIBRARY } from '@/constants/mockData';
 
 export default function PlantDetailScreen() {
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const colorScheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const colors = Colors[colorScheme];
+  
+  const { plants, deletePlant, updatePlant } = usePlants();
 
-  // Search in both my plants and explore library
-  const plant = 
-    MOCK_PLANTS.find((p) => p.id === id) || 
-    EXPLORE_LIBRARY.find((p) => p.id === id);
+  // 1. Search in user's plants
+  const userPlant = plants.find((p) => p.id === id);
+  // 2. Search in explore library catalog
+  const libraryPlant = EXPLORE_LIBRARY.find((p) => p.id === id);
+
+  const plant = userPlant || libraryPlant;
+  const isUserPlant = !!userPlant;
 
   if (!plant) {
     return (
@@ -31,17 +37,53 @@ export default function PlantDetailScreen() {
     );
   }
 
+  const handleDelete = () => {
+    Alert.alert(
+      '¿Eliminar planta?',
+      `¿Estás seguro de que deseas eliminar a ${userPlant?.nickname} de tu jardín? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Eliminar', 
+          style: 'destructive',
+          onPress: async () => {
+            await deletePlant(plant.id);
+            router.back();
+          }
+        }
+      ]
+    );
+  };
+
+  const handleWater = async () => {
+    if (!isUserPlant) return;
+    try {
+      await updatePlant(plant.id, {
+        lastWatered: 'Hoy',
+        nextWatering: 'En 7 días' // Simulated reset
+      });
+      Alert.alert('¡Regada!', `${userPlant.nickname} ha sido marcada como regada.`);
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo registrar el riego.');
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen 
         options={{
-          headerTitle: plant.commonName,
+          headerTitle: isUserPlant ? userPlant.nickname : plant.commonName,
           headerStyle: { backgroundColor: colors.primary },
           headerTintColor: '#FFFFFF',
           headerRight: () => (
-            <Pressable onPress={() => {}} style={{ marginRight: 8 }}>
-              <Ionicons name="heart-outline" size={24} color="#FFFFFF" />
-            </Pressable>
+            isUserPlant ? (
+              <Pressable 
+                onPress={() => router.push({ pathname: '/add-plant', params: { editId: plant.id } })} 
+                style={{ marginRight: 8 }}
+              >
+                <Ionicons name="pencil-outline" size={22} color="#FFFFFF" />
+              </Pressable>
+            ) : null
           ),
         }} 
       />
@@ -60,9 +102,20 @@ export default function PlantDetailScreen() {
 
         <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.headerRow}>
-            <View>
-              <Text style={[styles.commonName, { color: colors.text }]}>{plant.commonName}</Text>
-              <Text style={[styles.scientificName, { color: colors.textSecondary }]}>{plant.scientificName}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.commonName, { color: colors.text }]}>
+                {isUserPlant ? userPlant.nickname : plant.commonName}
+              </Text>
+              {isUserPlant && (
+                <Text style={[styles.speciesName, { color: colors.textSecondary }]}>
+                  Especie: {plant.scientificName}
+                </Text>
+              )}
+              {!isUserPlant && (
+                <Text style={[styles.scientificName, { color: colors.textSecondary }]}>
+                  {plant.scientificName}
+                </Text>
+              )}
             </View>
             <View style={[styles.healthBadge, { backgroundColor: plant.healthStatus.color + '22' }]}>
               <Text style={[styles.healthText, { color: plant.healthStatus.color }]}>
@@ -70,6 +123,23 @@ export default function PlantDetailScreen() {
               </Text>
             </View>
           </View>
+
+          {/* User Plant Custom Metadata Row */}
+          {isUserPlant && (
+            <View style={[styles.metaRow, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <View style={styles.metaCol}>
+                <Ionicons name="location-outline" size={16} color={colors.primary} />
+                <Text style={[styles.metaValue, { color: colors.text }]}>{userPlant.location}</Text>
+                <Text style={styles.metaLabel}>Ubicación</Text>
+              </View>
+              <View style={[styles.metaDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.metaCol}>
+                <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                <Text style={[styles.metaValue, { color: colors.text }]}>{userPlant.acquisitionDate}</Text>
+                <Text style={styles.metaLabel}>Adquirida</Text>
+              </View>
+            </View>
+          )}
 
           {/* Quick stats grid */}
           <View style={[styles.statsGrid, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
@@ -108,17 +178,27 @@ export default function PlantDetailScreen() {
             </View>
           </View>
 
-          {/* Watering log status */}
-          <View style={[styles.wateringStatus, { backgroundColor: colors.primaryLight }]}>
-            <View style={styles.wateringStatusText}>
-              <Text style={[styles.wateringStatusTitle, { color: colors.primary }]}>Próximo Riego</Text>
-              <Text style={[styles.wateringStatusDesc, { color: colors.text }]}>Programado para: {plant.nextWatering}</Text>
+          {/* Watering log status / CTA button */}
+          {isUserPlant ? (
+            <View style={[styles.wateringStatus, { backgroundColor: colors.primaryLight }]}>
+              <View style={styles.wateringStatusText}>
+                <Text style={[styles.wateringStatusTitle, { color: colors.primary }]}>Próximo Riego</Text>
+                <Text style={[styles.wateringStatusDesc, { color: colors.text }]}>Programado: {userPlant.nextWatering}</Text>
+              </View>
+              <Pressable onPress={handleWater} style={[styles.waterActionBtn, { backgroundColor: colors.primary }]}>
+                <Ionicons name="water" size={18} color="#FFFFFF" />
+                <Text style={styles.waterActionText}>Regar</Text>
+              </Pressable>
             </View>
-            <Pressable style={[styles.waterActionBtn, { backgroundColor: colors.primary }]}>
-              <Ionicons name="water" size={18} color="#FFFFFF" />
-              <Text style={styles.waterActionText}>Regar</Text>
+          ) : (
+            <Pressable 
+              onPress={() => router.push({ pathname: '/add-plant', params: { libraryPlantId: plant.id } })} 
+              style={[styles.addBtnLarge, { backgroundColor: colors.primary }]}
+            >
+              <Ionicons name="add-circle" size={22} color="#FFFFFF" />
+              <Text style={styles.addBtnLargeText}>Añadir a mi Jardín</Text>
             </Pressable>
-          </View>
+          )}
 
           {/* Description */}
           <View style={styles.section}>
@@ -138,6 +218,17 @@ export default function PlantDetailScreen() {
               </View>
             ))}
           </View>
+
+          {/* Delete Button for User Plants */}
+          {isUserPlant && (
+            <Pressable 
+              onPress={handleDelete} 
+              style={[styles.deleteBtn, { borderColor: colors.notification }]}
+            >
+              <Ionicons name="trash-outline" size={18} color={colors.notification} />
+              <Text style={[styles.deleteBtnText, { color: colors.notification }]}>Eliminar de mi Jardín</Text>
+            </Pressable>
+          )}
 
         </View>
       </ScrollView>
@@ -212,10 +303,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    gap: 12,
   },
   commonName: {
     fontSize: 22,
     fontWeight: 'bold',
+  },
+  speciesName: {
+    fontSize: 12,
+    marginTop: 2,
   },
   scientificName: {
     fontSize: 14,
@@ -230,6 +326,31 @@ const styles = StyleSheet.create({
   healthText: {
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 12,
+    alignItems: 'center',
+  },
+  metaCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaDivider: {
+    width: 1,
+    height: '80%',
+  },
+  metaValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  metaLabel: {
+    fontSize: 9,
+    color: '#90A4AE',
+    fontWeight: '600',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -305,6 +426,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 12,
   },
+  addBtnLarge: {
+    flexDirection: 'row',
+    height: 50,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  addBtnLargeText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
   section: {
     gap: 10,
   },
@@ -337,5 +471,19 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    borderWidth: 1.5,
+    borderRadius: 16,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  deleteBtnText: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
