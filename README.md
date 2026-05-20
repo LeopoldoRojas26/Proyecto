@@ -1,56 +1,51 @@
-# Welcome to your Expo app 👋
+# Greeny 
+Campos Ramirez María Guadalupe
+Garcia Razo Valeria Naomi
+Neri Saldivar Carlos Emmanuel
+Rojas Vega Leopoldo Alejandro
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Es una aplicación móvil integral diseñada para amantes de las plantas, desde principiantes hasta jardineros experimentados. La app combina tecnología moderna con conocimiento botánico para ofrecer una experiencia completa de gestión, cuidado y aprendizaje sobre plantas.
 
-## Get started
 
-1. Install dependencies
+# Tecnologias Utilizadas
+React Native & Expo (SDK 54): Framework principal para desarrollo multiplataforma.
 
-   ```bash
-   npm install
-   ```
+TypeScript: Lenguaje utilizado para asegurar un tipado estricto y código robusto.
 
-2. Start the app
+Expo Router: Sistema de navegación basado en archivos.
 
-   ```bash
-   npx expo start
-   ```
+AsyncStorage: Para la persistencia de datos locales de la colección y configuración.
 
-In the output, you'll find options to open the app in a
+Expo Camera & Image Picker: Para la herramienta de diagnóstico visual.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Expo Location: Para detectar la zona climática y personalizar recomendaciones.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Expo Notifications: Sistema de notificaciones locales (push) para los recordatorios de riego y abono.
 
-## Get a fresh project
 
-When you're ready, run:
+# Funcionalidades
+Mis Plantas (Colección Personal) Registro detallado de tu colección, asignación de apodos, control de ubicación en casa y un vistazo rápido al nivel de salud de cada planta.
 
-```bash
-npm run reset-project
-```
+Calendario y Recordatorios Planificador interactivo para visualizar tareas de cuidado (Riego, Abono, Poda, Trasplante) con alertas locales. Además, usa tu GPS para recomendar cuidados según tu zona climática.
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Diagnóstico Inteligente (Clínica de Plantas) Flujo interactivo donde el usuario toma una foto de la planta enferma, marca los síntomas observables en un formulario y recibe un diagnóstico automático con el nivel de gravedad, tratamiento (orgánico y químico) y prevención. Historial clínico guardado localmente.
 
-### Other setup steps
+Explorar (Biblioteca Botánica) Catálogo de 100 especies de plantas con buscador en tiempo real y filtros avanzados combinables (Exposición Solar, Dificultad, Toxicidad para mascotas). Incluye un botón mágico "1-Click" para añadir directamente la planta a tu jardín personal con todos sus datos.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+# Instrucciones de instalación o ejecución
+Requisitos previos:
 
-## Learn more
+Node.js instalado (v18+).
+La aplicación "Expo Go" en tu celular.
+Instalación y ejecución:
 
-To learn more about developing your project with Expo, look at the following resources:
+Abre tu terminal y ubícate en la carpeta del proyecto.
+Instala las dependencias del proyecto (con legacy peers para estabilizar versiones del SDK 54):
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+npm install --legacy-peer-deps
 
-## Join the community
+Inicia el servidor de desarrollo limpiando la caché antigua:
 
-Join our community of developers creating universal apps.
+npm start -- -c
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Con tu celular conectado a la misma red WiFi, abre la aplicación Expo Go y escanea el código QR que apareció en la pantalla de la terminal.
