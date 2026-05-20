@@ -49,5 +49,5 @@ Inicia el servidor de desarrollo limpiando la caché antigua:
 npm start -- -c
 
 Con tu celular conectado a la misma red WiFi, abre la aplicación Expo Go y escanea el código QR que apareció en la pantalla de la terminal.
-Capturas de pantalla 
+# Capturas de pantalla 
 https://drive.google.com/drive/folders/1JBz-M1UT6Sx7Y6bmQzX_7uGoaCWfi_yM?usp=sharing
