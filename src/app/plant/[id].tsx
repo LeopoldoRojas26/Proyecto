@@ -101,7 +101,7 @@ export default function PlantDetailScreen() {
 
   // Setup Timelapse Play Timer
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: any = null;
     if (timelapsePlaying && chronologicalDiary.length > 1) {
       interval = setInterval(() => {
         setTimelapseIndex((prev) => (prev >= chronologicalDiary.length - 1 ? 0 : prev + 1));

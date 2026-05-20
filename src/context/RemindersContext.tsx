@@ -34,7 +34,7 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
     shouldShowBanner: true,
     shouldShowList: true,
-  }),
+  } as any),
 });
 
 export function RemindersProvider({ children }: { children: React.ReactNode }) {

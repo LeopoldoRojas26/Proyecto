@@ -5,6 +5,7 @@ import React from 'react';
 import { Colors } from '@/constants/Colors';
 import { PlantsProvider } from '@/context/PlantsContext';
 import { RemindersProvider } from '@/context/RemindersContext';
+import { DiagnosisProvider } from '@/context/DiagnosisContext';
 
 export default function RootLayout() {
   const colorScheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
@@ -37,7 +38,8 @@ export default function RootLayout() {
   return (
     <PlantsProvider>
       <RemindersProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}>
+        <DiagnosisProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? customDarkTheme : customLightTheme}>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen 
@@ -86,7 +88,8 @@ export default function RootLayout() {
             }} 
           />
         </Stack>
-      </ThemeProvider>
+          </ThemeProvider>
+        </DiagnosisProvider>
       </RemindersProvider>
     </PlantsProvider>
   );

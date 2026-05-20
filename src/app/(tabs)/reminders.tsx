@@ -31,7 +31,7 @@ export default function RemindersScreen() {
   const todayStr = new Date().toISOString().split('T')[0];
 
   const getUrgency = (dateStr: string) => {
-    if (dateStr < todayStr) return { label: 'Vencido', color: colors.notification || '#F44336' };
+    if (dateStr < todayStr) return { label: 'Vencido', color: colors.notification || '#ef4444' };
     if (dateStr === todayStr) return { label: 'Hoy', color: colors.warning || '#FF9800' };
     return { label: 'Próximo', color: colors.success || '#81C784' };
   };
@@ -113,7 +113,7 @@ export default function RemindersScreen() {
         
         {/* Delete button option */}
         <Pressable onPress={() => deleteReminder(item.id)} style={{ paddingLeft: 10 }}>
-            <Ionicons name="trash-outline" size={18} color={colors.notification || '#F44336'} />
+            <Ionicons name="trash-outline" size={18} color={colors.notification || '#ef4444'} />
         </Pressable>
       </View>
     );

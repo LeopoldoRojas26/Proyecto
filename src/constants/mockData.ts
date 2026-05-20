@@ -13,12 +13,14 @@ export interface Plant {
   waterFrequency: string; // e.g. "Cada 5 días"
   light: 'Sombra' | 'Semisombra' | 'Sol directo';
   difficulty: 'Fácil' | 'Medio' | 'Difícil';
-  category: 'Interior' | 'Exterior' | 'Suculentas' | 'Huerto';
+  category: 'Interior' | 'Exterior' | 'Suculentas' | 'Huerto' | 'Cactus' | 'Aromáticas' | 'Ornamentales';
   lastWatered: string; // e.g. "Hace 3 días"
   humidity: string; // e.g. "40-60%"
   temperature: string; // e.g. "18-24°C"
   description: string;
   careInstructions: string[];
+  petToxic?: boolean;
+  idealSubstrate?: string;
 }
 
 export interface Reminder {

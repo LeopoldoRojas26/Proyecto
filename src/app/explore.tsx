@@ -1,60 +1,85 @@
 import React, { useState, useMemo } from 'react';
-import { StyleSheet, Text, View, FlatList, TextInput, Pressable, useColorScheme, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TextInput, Pressable, useColorScheme, SafeAreaView, Alert, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-import { EXPLORE_LIBRARY, Plant } from '@/constants/mockData';
+import { EXPLORE_LIBRARY_REAL, ExplorePlant } from '@/constants/exploreData';
+import { usePlants } from '@/context/PlantsContext';
 import PlantCard from '@/components/PlantCard';
 
-type CategoryFilter = 'Todas' | 'Interior' | 'Exterior' | 'Suculentas' | 'Huerto';
+type CategoryFilter = 'Todas' | 'Interior' | 'Exterior' | 'Suculentas' | 'Cactus' | 'Aromáticas' | 'Ornamentales' | 'Huerto';
 type LightFilter = 'Todos' | 'Sombra' | 'Semisombra' | 'Sol directo';
 type DifficultyFilter = 'Todos' | 'Fácil' | 'Medio' | 'Difícil';
+type ToxicityFilter = 'Todos' | 'No Tóxica' | 'Tóxica';
+
+const { width, height } = Dimensions.get('window');
 
 export default function ExploreScreen() {
   const colorScheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const colors = Colors[colorScheme];
+  const { addPlant } = usePlants();
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('Todas');
   const [selectedLight, setSelectedLight] = useState<LightFilter>('Todos');
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyFilter>('Todos');
+  const [selectedToxicity, setSelectedToxicity] = useState<ToxicityFilter>('Todos');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Categories list
-  const categories: CategoryFilter[] = ['Todas', 'Interior', 'Exterior', 'Suculentas', 'Huerto'];
+  const categories: CategoryFilter[] = ['Todas', 'Interior', 'Exterior', 'Suculentas', 'Cactus', 'Aromáticas', 'Ornamentales', 'Huerto'];
   const lights: LightFilter[] = ['Todos', 'Sombra', 'Semisombra', 'Sol directo'];
   const difficulties: DifficultyFilter[] = ['Todos', 'Fácil', 'Medio', 'Difícil'];
+  const toxicities: ToxicityFilter[] = ['Todos', 'No Tóxica', 'Tóxica'];
 
   // Filtered plants list
   const filteredPlants = useMemo(() => {
-    return EXPLORE_LIBRARY.filter((plant) => {
-      // Search filter
+    return EXPLORE_LIBRARY_REAL.filter((plant) => {
       const matchesSearch = 
         plant.commonName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         plant.scientificName.toLowerCase().includes(searchQuery.toLowerCase());
       
-      // Category filter
-      const matchesCategory = 
-        selectedCategory === 'Todas' || plant.category === selectedCategory;
+      const matchesCategory = selectedCategory === 'Todas' || plant.category === selectedCategory;
+      const matchesLight = selectedLight === 'Todos' || plant.light === selectedLight;
+      const matchesDifficulty = selectedDifficulty === 'Todos' || plant.difficulty === selectedDifficulty;
+      
+      let matchesToxicity = true;
+      if (selectedToxicity === 'Tóxica') matchesToxicity = plant.petToxic === true;
+      if (selectedToxicity === 'No Tóxica') matchesToxicity = plant.petToxic === false;
 
-      // Light filter
-      const matchesLight = 
-        selectedLight === 'Todos' || plant.light === selectedLight;
-
-      // Difficulty filter
-      const matchesDifficulty = 
-        selectedDifficulty === 'Todos' || plant.difficulty === selectedDifficulty;
-
-      return matchesSearch && matchesCategory && matchesLight && matchesDifficulty;
+      return matchesSearch && matchesCategory && matchesLight && matchesDifficulty && matchesToxicity;
     });
-  }, [searchQuery, selectedCategory, selectedLight, selectedDifficulty]);
+  }, [searchQuery, selectedCategory, selectedLight, selectedDifficulty, selectedToxicity]);
 
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedCategory('Todas');
     setSelectedLight('Todos');
     setSelectedDifficulty('Todos');
+    setSelectedToxicity('Todos');
+  };
+
+  const handleAddPlant = async (plant: ExplorePlant) => {
+    try {
+      await addPlant({
+        ...plant,
+        nickname: plant.commonName,
+        location: 'Mi Jardín', // Ubicación por defecto
+        acquisitionDate: new Date().toISOString().split('T')[0],
+      });
+      
+      Alert.alert(
+        "¡Añadida!",
+        `${plant.commonName} se guardó en tu colección.`,
+        [
+          { text: "Seguir explorando", style: "cancel" },
+          { text: "Ver mis plantas", onPress: () => router.navigate('/') }
+        ]
+      );
+    } catch (e) {
+      Alert.alert("Error", "No se pudo añadir la planta.");
+    }
   };
 
   const renderHeader = () => (
@@ -64,7 +89,7 @@ export default function ExploreScreen() {
         <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
-            placeholder="Buscar por nombre común o científico..."
+            placeholder="Buscar por nombre..."
             placeholderTextColor={colors.textSecondary + 'AA'}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -99,7 +124,7 @@ export default function ExploreScreen() {
         <View style={[styles.advancedPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {/* Light Requirement Filter */}
           <View style={styles.filterSection}>
-            <Text style={[styles.filterTitle, { color: colors.text }]}>Exposición Solar</Text>
+            <Text style={[styles.filterTitle, { color: colors.text }]}>Luz Solar</Text>
             <View style={styles.chipRow}>
               {lights.map((l) => (
                 <Pressable
@@ -111,13 +136,7 @@ export default function ExploreScreen() {
                     selectedLight === l && [styles.filterChipActive, { backgroundColor: colors.primary }]
                   ]}
                 >
-                  <Text 
-                    style={[
-                      styles.chipText, 
-                      { color: colors.text },
-                      selectedLight === l && styles.chipTextActive
-                    ]}
-                  >
+                  <Text style={[styles.chipText, { color: colors.text }, selectedLight === l && styles.chipTextActive]}>
                     {l}
                   </Text>
                 </Pressable>
@@ -127,7 +146,7 @@ export default function ExploreScreen() {
 
           {/* Difficulty Filter */}
           <View style={styles.filterSection}>
-            <Text style={[styles.filterTitle, { color: colors.text }]}>Dificultad de Cuidado</Text>
+            <Text style={[styles.filterTitle, { color: colors.text }]}>Dificultad</Text>
             <View style={styles.chipRow}>
               {difficulties.map((d) => (
                 <Pressable
@@ -139,13 +158,7 @@ export default function ExploreScreen() {
                     selectedDifficulty === d && [styles.filterChipActive, { backgroundColor: colors.primary }]
                   ]}
                 >
-                  <Text 
-                    style={[
-                      styles.chipText, 
-                      { color: colors.text },
-                      selectedDifficulty === d && styles.chipTextActive
-                    ]}
-                  >
+                  <Text style={[styles.chipText, { color: colors.text }, selectedDifficulty === d && styles.chipTextActive]}>
                     {d}
                   </Text>
                 </Pressable>
@@ -153,8 +166,30 @@ export default function ExploreScreen() {
             </View>
           </View>
 
+          {/* Toxicity Filter */}
+          <View style={styles.filterSection}>
+            <Text style={[styles.filterTitle, { color: colors.text }]}>Toxicidad para Mascotas</Text>
+            <View style={styles.chipRow}>
+              {toxicities.map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => setSelectedToxicity(t)}
+                  style={[
+                    styles.filterChip,
+                    { backgroundColor: colors.background, borderColor: colors.border },
+                    selectedToxicity === t && [styles.filterChipActive, { backgroundColor: '#D32F2F' }]
+                  ]}
+                >
+                  <Text style={[styles.chipText, { color: colors.text }, selectedToxicity === t && styles.chipTextActive]}>
+                    {t}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
           {/* Reset Filters button */}
-          {(selectedLight !== 'Todos' || selectedDifficulty !== 'Todos') && (
+          {(selectedLight !== 'Todos' || selectedDifficulty !== 'Todos' || selectedToxicity !== 'Todos') && (
             <Pressable onPress={clearFilters} style={styles.panelClearBtn}>
               <Text style={{ color: colors.notification, fontSize: 12, fontWeight: 'bold' }}>
                 Restablecer Filtros
@@ -182,13 +217,7 @@ export default function ExploreScreen() {
                   isActive && [styles.categoryChipActive, { backgroundColor: colors.primary }]
                 ]}
               >
-                <Text 
-                  style={[
-                    styles.categoryChipText, 
-                    { color: colors.text },
-                    isActive && styles.categoryChipTextActive
-                  ]}
-                >
+                <Text style={[styles.categoryChipText, { color: colors.text }, isActive && styles.categoryChipTextActive]}>
                   {item}
                 </Text>
               </Pressable>
@@ -203,7 +232,7 @@ export default function ExploreScreen() {
         <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>
           {filteredPlants.length} {filteredPlants.length === 1 ? 'planta encontrada' : 'plantas encontradas'}
         </Text>
-        {(searchQuery.length > 0 || selectedCategory !== 'Todas' || selectedLight !== 'Todos' || selectedDifficulty !== 'Todos') && (
+        {(searchQuery.length > 0 || selectedCategory !== 'Todas' || selectedLight !== 'Todos' || selectedDifficulty !== 'Todos' || selectedToxicity !== 'Todos') && (
           <Pressable onPress={clearFilters}>
             <Text style={[styles.clearAllLink, { color: colors.primary }]}>Limpiar filtros</Text>
           </Pressable>
@@ -222,14 +251,22 @@ export default function ExploreScreen() {
           headerTitleStyle: { fontWeight: 'bold' },
         }}
       />
+      {/* Decorative Background Leaves */}
+      <Ionicons name="leaf" size={240} color={colors.primary} style={[styles.bgLeaf, styles.leaf1]} />
+      <Ionicons name="leaf-outline" size={180} color={colors.primary} style={[styles.bgLeaf, styles.leaf2]} />
+      
       <FlatList
         data={filteredPlants}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <PlantCard plant={item} />}
+        // Pasamos el handler onAdd a PlantCard usando un cast seguro a any si Plant y ExplorePlant tienen conflictos de base
+        renderItem={({ item }) => <PlantCard plant={item as any} onAdd={() => handleAddPlant(item)} />}
         numColumns={2}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={renderHeader}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={5}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="search-outline" size={64} color={colors.textSecondary + '66'} />
@@ -247,9 +284,26 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
+  },
+  bgLeaf: {
+    position: 'absolute',
+    opacity: 0.04, // Very subtle watermark effect
+    zIndex: -1,
+  },
+  leaf1: {
+    top: -40,
+    right: -60,
+    transform: [{ rotate: '45deg' }],
+  },
+  leaf2: {
+    bottom: 80,
+    left: -50,
+    transform: [{ rotate: '-30deg' }],
   },
   listContent: {
     padding: 8,
+    paddingBottom: 40,
   },
   headerContainer: {
     paddingHorizontal: 8,
